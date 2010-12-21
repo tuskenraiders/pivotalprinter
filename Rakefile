@@ -18,6 +18,7 @@ $hoe = Hoe.spec 'pivotalprinter' do
     ['term-ansicolor','>= 0.4.4'],
     ['prawn','>= 0.8.4'],
     ['spruz','~> 0.2.0'],
+    ['trollop','>= 1.16.2']
   ]
 end
 

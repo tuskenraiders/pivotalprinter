@@ -16,30 +16,59 @@ require 'term/ansicolor'
 require 'prawn'
 require 'prawn/layout/grid'
 require 'spruz/xt/full'
+require 'trollop'
+require 'yaml'
+require 'pivotalprinter'
 
 class String; include Term::ANSIColor; end
 
-config = ENV # TODO maybe preinitialize from a config file instead?
+opts = Trollop::options do
+  version "pivotalprinter #{Pivotalprinter::VERSION} (c) 2010#{(year = Time.now.year) > 2010 ? "-#{year}" : ''} pkw.de"
+  banner <<-EOS
+Pivotalprinter is an awesome program to print stories from the PivotalTracker.
 
-if config.key?('PIVOTAL_TOKEN')
-  PivotalTracker::Client.token = config['PIVOTAL_TOKEN']   # Manually set API Token
-elsif config.key?('PIVOTAL_LOGIN') and config.key?('PIVOTAL_PASSWORD')
-  PivotalTracker::Client.token(config['PIVOTAL_LOGIN'], config['PIVOTAL_PASSWORD'])       # Automatically fetch API Token
-else
-  fail "require either PIVOTAL_TOKEN or PIVOTAL_LOGIN and PIVOTAL_PASSWORD as environment variable"
-end
-if config.key?('PIVOTAL_PROJECT_ID')
-  project = PivotalTracker::Project.find(config['PIVOTAL_PROJECT_ID'])                     # find project with a given ID
-else
-  fail "require PIVOTAL_PROJECT_ID as environment variable"
+Useage:
+        pivotalprinter [-P PROJECT] [(-t TOKEN |-u USERNAME -p PASSWORD)] [current|backlog|done|STORY]
+
+EOS
+  opt :project,  "Project Name defined in $HOME/.pivotalprinter or project number", :short => "-P", :type => :string
+  opt :username, "Pivotaltracker Username", :short => "-u", :type => :string
+  opt :password, "Pivotaltracker Password", :short => "-p", :type => :string
+  opt :token,    "Pivotaltracker Token",    :short => "-t", :type => :string
 end
 
-stories = case ARGV.first
+yaml = YAML::load_file("#{ENV["HOME"]}/.pivotalprinterrc")
+
+if opts[:project].nil? && yaml.key?("default")
+  config = yaml["default"]
+elsif opts[:project] =~ /[0-9]+/
+  config = {"project" => opts[:project]}
+elsif yaml.key?(opts[:project])
+  config = yaml[opts[:project]]
+else
+  Trollop::die :project, "project must be a valid number or one of the configured projects (#{(yaml.keys - ["default"]).join(", ")}) if no default is configured in $HOME/.pivotalprinterrc"
+end
+
+[:token,:username,:password].each do |opt|
+  opts[opt].full? { |t| config[opt.to_s] = t }
+end
+
+
+if config.key?('token')
+  PivotalTracker::Client.token = config['token']   # Manually set API Token
+elsif config.key?('username') and config.key?('password')
+  PivotalTracker::Client.token(config['username'], config['password'])       # Automatically fetch API Token
+else
+  Trollop::die :token, "an api token or username and password must be given"
+end
+project = PivotalTracker::Project.find(config['project'])                     # find project with a given ID
+
+stories = case ARGV.last
   when "current": PivotalTracker::Iteration.current(project).stories
   when "done"   : PivotalTracker::Iteration.done(project).stories
   when "backlog": PivotalTracker::Iteration.backlog(project).full? { |a| a.first.full?(:stories) }
-  when /^\d+$/  : [project.stories.find(ARGV.first.to_i)]
-  when "help"   : puts "usage:\n  > pivotalprint.rb current|done|backlog|story_id    # print corresponding stories\n"
+  when /^\d+$/  : [project.stories.find(ARGV.last.to_i)]
+  else PivotalTracker::Iteration.current(project).stories
 end
 
 class Card < OpenStruct
@@ -53,13 +82,14 @@ end
 cards = stories.map do |story|
 
   bgcolor = case story.estimate
-    when 0: 'ccff66'
-    when 1: '408000'
-    when 2: '808000'
-    when 3: 'ffcc66'
-    when 5: 'ff8000'
-    when 8: 'ff0000'
-    else 'aa0000'
+    when -1: 'cccccc'
+    when  0: 'ccff66'
+    when  1: '408000'
+    when  2: '808000'
+    when  3: 'ffcc66'
+    when  5: 'ff8000'
+    when  8: 'ff0000'
+    else     'aa0000'
   end  
   attrs =  { :title  => story.name,
              :body   => story.description,
@@ -122,7 +152,7 @@ Prawn::Document.generate("/tmp/stories.pdf", :page_layout => :landscape, :margin
           pdf.font_size = 36
           pdf.font "Helvetica", :style => :bold
           pdf.fill_color 'ffffff'
-          pdf.draw_text "#{card.points}", :at => [x-10, y-12]
+          pdf.draw_text "#{card.points >= 0 ? card.points : '?'}", :at => [x-10, y-12]
           pdf.fill_color '000000'
           pdf.font_size = 14
         else
