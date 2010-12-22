@@ -114,7 +114,7 @@ EOS
             pdf.stroke_color = "666666"
             pdf.stroke_bounds
             
-            pdf.text_box story.name, :size => 14, :overflow => :truncate, :width => cell.width-(padding*2)-50, :at => [pdf.bounds.left+padding+50, pdf.bounds.top-padding]
+            pdf.text_box story.name, :size => 14, :height => 50, :overflow => :truncate, :width => cell.width-(padding*2)-50, :at => [pdf.bounds.left+padding+50, pdf.bounds.top-padding]
             pdf.text_box story.description, :size => 8, :overflow => :truncate, :width => cell.width-(padding*2), :at => [pdf.bounds.left+padding, pdf.bounds.top-padding-55]
 
             x, y = 32, 205
