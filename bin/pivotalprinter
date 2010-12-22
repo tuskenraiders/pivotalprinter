@@ -1,47 +1,44 @@
 #!/usr/bin/env ruby
+# inspired by from http://ephemera.karmi.cz/post/622136360/create-printable-pdf-cards-for-your-pivotal-tracker-stor
 
-# Script to generate PDF cards suitable for planning poker
-# from Pivotal Tracker [http://www.pivotaltracker.com/] CSV export.
-
-# Inspired by Bryan Helmkamp's http://github.com/brynary/features2cards/
-
-# Example output: http://img.skitch.com/20100522-d1kkhfu6yub7gpye97ikfuubi2.png
-
-# Original from http://ephemera.karmi.cz/post/622136360/create-printable-pdf-cards-for-your-pivotal-tracker-stor
-
-require 'rubygems'
-require 'pivotal-tracker'
-require 'ostruct'
-require 'term/ansicolor'
-require 'prawn'
-require 'prawn/layout/grid'
-require 'spruz/xt/full'
-require 'trollop'
-require 'yaml'
 require 'pivotalprinter'
 
 class String; include Term::ANSIColor; end
 
-opts = Trollop::options do
-  version "pivotalprinter #{Pivotalprinter::VERSION} (c) 2010#{(year = Time.now.year) > 2010 ? "-#{year}" : ''} pkw.de"
-  banner <<-EOS
-Pivotalprinter is an awesome program to print stories from the PivotalTracker.
-
-Useage:
-        pivotalprinter [-P PROJECT] [(-t TOKEN |-u USERNAME -p PASSWORD)] [current|backlog|done|STORY]
-        pivotalprinter --config > ~/.pivotalprinterrc
-
-Options:
-EOS
-  opt :project,  "Project Name defined in $HOME/.pivotalprinterrc or project number", :short => "-P", :type => :string
-  opt :username, "Pivotaltracker Username", :short => "-u", :type => :string
-  opt :password, "Pivotaltracker Password", :short => "-p", :type => :string
-  opt :token,    "Pivotaltracker Token",    :short => "-t", :type => :string
-  opt :config,   "show example configuration", :short => "-c"
+module Pivotalprinter
+  class ConfigNeeded < StandardError; end
+  class TokenMissing < StandardError; end
+  class ProjectMissing < StandardError; end
 end
 
-if opts[:config]
-  puts <<-EOS
+module Pivotalprinter
+  class Printer
+    def run
+      opts = parse_options
+      yaml = load_yaml_config 
+      project,token = extract_config(opts, yaml)
+      Pivotalprinter::Client.project = project
+      Pivotalprinter::Client.token   = token
+      @stories = case ARGV.last
+        when "done"   : Pivotalprinter::Iteration.open('done').stories
+        when "backlog": Pivotalprinter::Iteration.open('backlog').stories
+        when /^\d+$/  : [Pivotalprinter::Story.open(ARGV.last.to_i)]
+        else Pivotalprinter::Iteration.open('current').stories
+      end
+      generate_output
+    rescue ConfigNeeded      
+      print_config
+    rescue TokenMissing
+      Trollop::die :token, "token must be specified through config file or explicitly"
+    rescue ProjectMissing
+      Trollop::die :project, "project must be a valid number or one of the configured projects (#{(yaml.keys - ["default"]).join(", ")}) if no default is configured in $HOME/.pivotalprinterrc"
+    rescue Exception
+      puts "[!] There was an error while generating the PDF file... What happened was:".white.on_red
+      raise
+    end
+  
+    def print_config
+      puts <<-EOS
 ---
 default: &default
   token: "YOUR TOKEN HERE"
@@ -51,142 +48,96 @@ some_project:
   <<: *default # so you don't need to rewrite the token
   project: 789
 EOS
-else
-
-  yaml = File.exist?("#{ENV["HOME"]}/.pivotalprinterrc") ? YAML::load_file("#{ENV["HOME"]}/.pivotalprinterrc") : {}
-
-  if opts[:project].nil? && yaml.key?("default")
-    config = yaml["default"]
-  elsif opts[:project] =~ /[0-9]+/
-    config = {"project" => opts[:project]}
-  elsif yaml.key?(opts[:project])
-    config = yaml[opts[:project]]
-  else
-    Trollop::die :project, "project must be a valid number or one of the configured projects (#{(yaml.keys - ["default"]).join(", ")}) if no default is configured in $HOME/.pivotalprinterrc"
-  end
-
-  [:token,:username,:password].each do |opt|
-    opts[opt].full? { |t| config[opt.to_s] = t }
-  end
-
-
-  if config.key?('token')
-    PivotalTracker::Client.token = config['token']   # Manually set API Token
-  elsif config.key?('username') and config.key?('password')
-    PivotalTracker::Client.token(config['username'], config['password'])       # Automatically fetch API Token
-  else
-    Trollop::die :token, "an api token or username and password must be given"
-  end
-  project = PivotalTracker::Project.find(config['project'])                     # find project with a given ID
-
-  stories = case ARGV.last
-    when "current": PivotalTracker::Iteration.current(project).stories
-    when "done"   : PivotalTracker::Iteration.done(project).stories
-    when "backlog": PivotalTracker::Iteration.backlog(project).full? { |a| a.first.full?(:stories) }
-    when /^\d+$/  : [project.stories.find(ARGV.last.to_i)]
-    else PivotalTracker::Iteration.current(project).stories
-  end
-
-  class Card < OpenStruct
-    def type
-      @table[:type]
     end
-  end
+  
+    def parse_options
+      opts = Trollop::options do
+        version "pivotalprinter #{Pivotalprinter::VERSION} (c) 2010#{(year = Time.now.year) > 2010 ? "-#{year}" : ''} pkw.de"
+        banner <<-EOS
+Pivotalprinter is an awesome program to print stories from the PivotalTracker.
 
-  # --- Create cards objects
+Useage:
+        pivotalprinter [-p PROJECT] [-t TOKEN] [current|backlog|done|STORY]
+        pivotalprinter --config > ~/.pivotalprinterrc
 
-  cards = stories.map do |story|
-
-    bgcolor = case story.estimate
-      when -1: 'cccccc'
-      when  0: 'ccff66'
-      when  1: '408000'
-      when  2: '808000'
-      when  3: 'ffcc66'
-      when  5: 'ff8000'
-      when  8: 'ff0000'
-      else     'aa0000'
-    end  
-    attrs =  { :title  => story.name,
-               :body   => story.description,
-               :type   => story.story_type,
-               :points => story.estimate,
-               :bgcolor => bgcolor
-             }
-    attrs[:body] = attrs[:body].split("\n").first(4).join("\n")
-    Card.new attrs
-  end
-
-  begin
-
-  Prawn::Document.generate("/tmp/stories.pdf", :page_layout => :landscape, :margin => [25, 25, 50, 25], :page_size   => 'A4') do |pdf|
-
-      @num_cards_on_page = 0
-
-      pdf.font "#{Prawn::BASEDIR}/data/fonts/DejaVuSans.ttf"
-
-      cards.each_with_index do |card, i|
-
-        # --- Split pages
-        if i > 0 and i % 4 == 0
-          # puts "New page..."
-          pdf.start_new_page
-          @num_cards_on_page  = 1
-        else
-          @num_cards_on_page += 1
-        end
-
-        # --- Define 2x2 grid
-        pdf.define_grid(:columns => 2, :rows => 2, :gutter => 42)
-        # pdf.grid.show_all
-
-        row    = (@num_cards_on_page+1) / 4
-        column = i % 2
-
-        padding = 12
-
-        cell = pdf.grid( row, column )
-        cell.bounding_box do
-
-          pdf.stroke_color = "666666"
-          pdf.stroke_bounds
-
-          # --- Write content
-          pdf.bounding_box [pdf.bounds.left+padding+50, pdf.bounds.top-padding], :width => cell.width-(padding*2)-50 do
-            pdf.text card.title, :size => 14
-            pdf.text "\n", :size => 14
-            pdf.fill_color "444444"
-            pdf.text card.body, :size => 8
-            pdf.fill_color "000000"
+Options:
+EOS
+        opt :project,  "Project Name defined in $HOME/.pivotalprinterrc or project number", :short => "-p", :type => :string
+        opt :token,    "Pivotaltracker Token",    :short => "-t", :type => :string
+        opt :config,   "show example configuration", :short => "-c"
+      end
+    
+      raise ConfigNeeded if opts[:config]
+      opts
+    end
+  
+    def load_yaml_config
+      File.exist?("#{ENV["HOME"]}/.pivotalprinterrc") ? YAML::load_file("#{ENV["HOME"]}/.pivotalprinterrc") : {}
+    end
+  
+    def extract_config(opts, yaml)
+      if opts[:project].nil? && yaml.key?("default")
+        return yaml["default"]["project"], yaml["default"]["token"]
+      elsif opts[:project] =~ /[0-9]+/
+        return opts[:project], (opts[:token] || yaml["default"]["project"])
+      elsif yaml.key?(opts[:project])
+        return yaml[opts[:project]]["project"], yaml[opts[:project]]["token"]
+      else
+        raise ProjectMissing
+      end
+    end
+  
+    def generate_output
+      Prawn::Document.generate("/tmp/stories.pdf", :page_layout => :landscape, :margin => [25, 25, 50, 25], :page_size   => 'A4') do |pdf|
+        @num_cards_on_page = 0
+        pdf.font "#{Prawn::BASEDIR}/data/fonts/DejaVuSans.ttf"
+        @stories.each_with_index do |story, i|
+          # --- Split pages
+          if i > 0 and i % 4 == 0
+            # puts "New page..."
+            pdf.start_new_page
+            @num_cards_on_page  = 1
+          else
+            @num_cards_on_page += 1
           end
 
-          x, y = 32, 205
-          if card.type=="feature"
-          
-            pdf.fill_color card.bgcolor
-            pdf.fill_circle_at [x,y], :radius => 25
-            pdf.font_size = 36
-            pdf.font "Helvetica", :style => :bold
-            pdf.fill_color 'ffffff'
-            pdf.draw_text "#{card.points >= 0 ? card.points : '?'}", :at => [x-10, y-12]
-            pdf.fill_color '000000'
-            pdf.font_size = 14
-          else
-            pdf.image open("#{File.dirname(__FILE__)}/../images/#{card.type}.png"), :position => 5, :vposition => 5          
+          # --- Define 2x2 grid
+          pdf.define_grid(:columns => 2, :rows => 2, :gutter => 42)
+          # pdf.grid.show_all
+
+          row    = (@num_cards_on_page+1) / 4
+          column = i % 2
+          padding = 12
+          cell = pdf.grid( row, column )
+          cell.bounding_box do
+
+            pdf.stroke_color = "666666"
+            pdf.stroke_bounds
+            
+            pdf.text_box story.name, :size => 14, :overflow => :truncate, :width => cell.width-(padding*2)-50, :at => [pdf.bounds.left+padding+50, pdf.bounds.top-padding]
+            pdf.text_box story.description, :size => 8, :overflow => :truncate, :width => cell.width-(padding*2), :at => [pdf.bounds.left+padding, pdf.bounds.top-padding-55]
+
+            x, y = 32, 205
+            if story.story_type=="feature"
+              pdf.fill_color story.points_background
+              pdf.fill_circle_at [x,y], :radius => 25
+              pdf.font_size = 36
+              pdf.font "Helvetica", :style => :bold
+              pdf.fill_color 'ffffff'
+              pdf.draw_text "#{story.points}", :at => [x-10, y-12]
+              pdf.fill_color '000000'
+              pdf.font_size = 14
+              pdf.font "#{Prawn::BASEDIR}/data/fonts/DejaVuSans.ttf", :style => :normal
+            else
+              pdf.image open("#{File.dirname(__FILE__)}/../images/#{story.story_type}.png"), :position => 5, :vposition => 5          
+            end
           end
         end
       end
-
-      # --- Footer
-      pdf.number_pages "stories.pdf", [pdf.bounds.left,  -28]
-      pdf.number_pages "<page>/<total>", [pdf.bounds.right-16, -28]
-  end
-
-  puts ">>> Generated PDF file in 'stories.pdf' with #{cards.size} stories".black.on_green
-  system "open /tmp/stories.pdf"
-
-  rescue Exception
-    puts "[!] There was an error while generating the PDF file... What happened was:".white.on_red
-    raise
+      puts ">>> Generated PDF file in 'stories.pdf' with #{@stories.size} stories".black.on_green
+      system "open /tmp/stories.pdf"
+    end
   end
 end
+
+Pivotalprinter::Printer.new.run

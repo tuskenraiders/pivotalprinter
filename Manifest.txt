@@ -9,6 +9,9 @@ images/chore.png
 images/feature.png
 images/release.png
 lib/pivotalprinter.rb
+lib/pivotalprinter/client.rb
+lib/pivotalprinter/story.rb
+lib/pivotalprinter/iteration.rb
 pivotalprinter.gemspec
 script/console
 script/destroy

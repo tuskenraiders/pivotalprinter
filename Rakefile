@@ -7,6 +7,8 @@ require './lib/pivotalprinter'
 Hoe.plugin :newgem
 Hoe.plugins.delete :rubyforge
 
+Hoe.add_include_dirs "./lib/pivotalprinter"
+
 # Generate all the Rake tasks
 # Run 'rake -T' to see list of generated tasks (from gem root directory)
 $hoe = Hoe.spec 'pivotalprinter' do
@@ -14,11 +16,11 @@ $hoe = Hoe.spec 'pivotalprinter' do
   self.post_install_message = 'PostInstall.txt' # TODO remove if post-install message not required
   self.rubyforge_name       = self.name # TODO this is default value
   self.extra_deps         = [
-    ['pivotal-tracker','>= 0.3'],
     ['term-ansicolor','>= 0.4.4'],
     ['prawn','>= 0.8.4'],
     ['spruz','~> 0.2.0'],
-    ['trollop','>= 1.16.2']
+    ['trollop','>= 1.16.2'],
+    ['nokogiri','>= 1.4.4']
   ]
 end
 
