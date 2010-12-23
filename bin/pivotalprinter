@@ -32,22 +32,14 @@ module Pivotalprinter
       Trollop::die :token, "token must be specified through config file or explicitly"
     rescue ProjectMissing
       Trollop::die :project, "project must be a valid number or one of the configured projects (#{(yaml.keys - ["default"]).join(", ")}) if no default is configured in $HOME/.pivotalprinterrc"
+    rescue SystemExit
     rescue Exception
       puts "[!] There was an error while generating the PDF file... What happened was:".white.on_red
       raise
     end
   
     def print_config
-      puts <<-EOS
----
-default: &default
-  token: "YOUR TOKEN HERE"
-  project: 123
-
-some_project:
-  <<: *default # so you don't need to rewrite the token
-  project: 789
-EOS
+      puts %{---\ndefault: &default\n  token: "YOUR TOKEN HERE"\n  project: 123\n\nsome_project:\n  <<: *default # so you don't need to rewrite the token\n  project: 789}
     end
   
     def parse_options
