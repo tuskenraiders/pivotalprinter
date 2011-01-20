@@ -1,8 +1,12 @@
+=== 0.1.4 2011-01-20
+
+* print multiple stories by id
+* story id is now included at the sheet
+
 === 0.1.2 2010-12-22
 
 * removed dependencies:
   * pivotal-tracker no longer needed
-
 
 === 0.0.1 2010-12-07
 

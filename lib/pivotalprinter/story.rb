@@ -4,14 +4,17 @@ module Pivotalprinter
     
     def initialize(xml)
       [:name, :id, :story_type, :estimate, :current_state, :description, :requested_by, :labels].each do |field|
-        send "#{field}=", xml.css(field.to_s).send(:text)
+        value = xml.css("#{field}")
+        send "#{field}=", value.first.full? { |v| v.send(:text) } || value.send(:text)
       end
     end
     
-    def self.open(id)
-      response = Client.get "/projects/#{Client.project}/stories/#{id}"
-      response = Nokogiri::XML.parse(response)
-      self.new(response.css('story'))
+    def self.open(ids)
+      stories = ids.map do |id|
+        response = Client.get "/projects/#{Client.project}/stories/#{id}"
+        response = Nokogiri::XML.parse(response)
+        self.new(response.css('story'))        
+      end
     end
     
     def points
