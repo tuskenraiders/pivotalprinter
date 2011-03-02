@@ -109,6 +109,7 @@ EOS
             pdf.text_box story.name, :size => 14, :height => 50, :overflow => :truncate, :width => cell.width-(padding*2)-50, :at => [pdf.bounds.left+padding+50, pdf.bounds.top-padding]
             pdf.text_box story.description, :size => 8, :overflow => :truncate, :width => cell.width-(padding*2), :height => cell.height-(padding*7), :at => [pdf.bounds.left+padding, pdf.bounds.top-padding-55]
             pdf.text_box "ID #{story.id}", :size => 8, :at => [pdf.bounds.left, pdf.bounds.bottom+padding], :align => :right
+            pdf.text_box story.created_at.strftime('%F'), :size => 8, :at => [pdf.bounds.left, pdf.bounds.bottom+padding], :align => :left
 
             x, y = 32, 205
             if story.story_type=="feature"

@@ -1,12 +1,17 @@
+require 'time'
+
 module Pivotalprinter
   class Story
-    attr_accessor :name, :id, :story_type, :estimate, :current_state, :description, :requested_by, :labels
+    FIELDS = [ :name, :id, :story_type, :estimate, :current_state, :description, :requested_by, :labels, :created_at, :updated_at ]
+    attr_accessor *FIELDS
     
     def initialize(xml)
-      [:name, :id, :story_type, :estimate, :current_state, :description, :requested_by, :labels].each do |field|
+      FIELDS.each do |field|
         value = xml.css("#{field}")
         send "#{field}=", value.first.full? { |v| v.send(:text) } || value.send(:text)
       end
+      created_at and self.created_at = Time.parse(created_at)
+      updated_at and self.updated_at = Time.parse(updated_at)
     end
     
     def self.open(ids)
