@@ -1,20 +1,19 @@
 $:.unshift(File.dirname(__FILE__)) unless
   $:.include?(File.dirname(__FILE__)) || $:.include?(File.expand_path(File.dirname(__FILE__)))
 
-require 'rubygems'
-require 'term/ansicolor'
-require 'prawn'
-require 'prawn/layout/grid'
-require 'spruz/xt/full'
-require 'trollop'
-require 'yaml'
-require "rubygems"
-require "open-uri"
-require "nokogiri"
-require "pivotalprinter/client"
-require "pivotalprinter/iteration"
-require "pivotalprinter/story"
-
 module Pivotalprinter
-  VERSION = '0.1.5'
+  require 'rubygems'
+  require 'pivotalprinter/version'
+  require 'term/ansicolor'
+  require 'prawn'
+  require 'prawn/layout/grid'
+  require 'spruz/xt/full'
+  require 'trollop'
+  require 'yaml'
+  require "rubygems"
+  require "open-uri"
+  require "nokogiri"
+  require "pivotalprinter/client"
+  require "pivotalprinter/iteration"
+  require "pivotalprinter/story"
 end

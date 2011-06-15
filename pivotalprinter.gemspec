@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
-$:.push File.expand_path("./lib", __FILE__)
-require "lib/pivotalprinter"
+$:.unshift 'lib'
+require "pivotalprinter/version"
 
 Gem::Specification.new do |s|
   s.name        = "pivotalprinter"
@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.platform    = Gem::Platform::RUBY
   s.authors     = ["pkw.de"]
   s.email       = ["dev@pkw.de"]
-  s.homepage    = ""
+  s.homepage    = "http://pkw.de"
   s.summary     = %q{Story printer for pivotaltracker}
   s.description = %q{Generate nice story cards from pivotaltracker.}
   
