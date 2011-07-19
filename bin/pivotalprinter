@@ -114,7 +114,7 @@ EOS
             x, y = 32, 205
             if story.story_type=="feature"
               pdf.fill_color story.points_background
-              pdf.fill_circle_at [x,y], :radius => 25
+              pdf.fill_circle [x,y], 25
               pdf.font_size = 36
               pdf.font "Helvetica", :style => :bold
               pdf.fill_color 'ffffff'

@@ -18,7 +18,7 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
   
   s.add_dependency('term-ansicolor','>= 0.4.4')
-  s.add_dependency('prawn','>= 0.8.4')
+  s.add_dependency('prawn','~>0.11.1')
   s.add_dependency('spruz','>= 0.2.0')
   s.add_dependency('trollop','>= 1.16.2')
   s.add_dependency('nokogiri','>= 1.4.4')
