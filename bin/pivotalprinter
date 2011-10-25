@@ -20,9 +20,9 @@ module Pivotalprinter
       Pivotalprinter::Client.project = project
       Pivotalprinter::Client.token   = token
       @stories = case ARGV.last
-        when "done"   : Pivotalprinter::Iteration.open('done').stories
-        when "backlog": Pivotalprinter::Iteration.open('backlog').stories
-        when /^\d+$/  : Pivotalprinter::Story.open(ARGV.map(&:to_i))
+        when "done"    then Pivotalprinter::Iteration.open('done').stories
+        when "backlog" then Pivotalprinter::Iteration.open('backlog').stories
+        when /^\d+$/   then Pivotalprinter::Story.open(ARGV.map(&:to_i))
         else Pivotalprinter::Iteration.open('current').stories
       end
       generate_output

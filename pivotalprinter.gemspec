@@ -22,4 +22,5 @@ Gem::Specification.new do |s|
   s.add_dependency('spruz','>= 0.2.0')
   s.add_dependency('trollop','>= 1.16.2')
   s.add_dependency('nokogiri','>= 1.4.4')
+  s.add_development_dependency('rake')
 end
