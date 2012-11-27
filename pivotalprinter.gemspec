@@ -11,16 +11,17 @@ Gem::Specification.new do |s|
   s.homepage    = "http://pkw.de"
   s.summary     = %q{Story printer for pivotaltracker}
   s.description = %q{Generate nice story cards from pivotaltracker.}
-  
+
   s.files         = `git ls-files`.split("\n")
   s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
   s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
   s.require_paths = ["lib"]
-  
-  s.add_dependency('term-ansicolor','>= 0.4.4')
-  s.add_dependency('prawn','~>0.11.1')
-  s.add_dependency('spruz','>= 0.2.0')
-  s.add_dependency('trollop','>= 1.16.2')
-  s.add_dependency('nokogiri','>= 1.4.4')
+
+  s.add_dependency('term-ansicolor')
+  s.add_dependency('prawn')
+  s.add_dependency('tins')
+  s.add_dependency('trollop')
+  s.add_dependency('nokogiri')
   s.add_development_dependency('rake')
+  s.add_development_dependency('pry')
 end
