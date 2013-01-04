@@ -32,7 +32,6 @@ module Pivotalprinter
       Trollop::die :token, "token must be specified through config file or explicitly"
     rescue ProjectMissing
       Trollop::die :project, "project must be a valid number or one of the configured projects (#{(yaml.keys - ["default"]).join(", ")}) if no default is configured in $HOME/.pivotalprinterrc"
-    rescue SystemExit
     rescue Exception
       puts "[!] There was an error while generating the PDF file... What happened was:".white.on_red
       raise
@@ -131,16 +130,16 @@ EOS
             if story.story_type == "feature"
               pdf.fill_color story.points_background
               pdf.fill_circle [x, y], 25
-              pdf.font_size = 36
-              pdf.font "Helvetica", :style => :bold
-              pdf.fill_color 'ffffff'
-              pdf.draw_text "#{story.points}", :at => [x - 10, y - 12]
-              pdf.fill_color '000000'
-              pdf.font_size = 14
-              pdf.font "#{Prawn::BASEDIR}/data/fonts/DejaVuSans.ttf", :style => :normal
             else
               pdf.image open("#{File.dirname(__FILE__)}/../images/#{story.story_type}.png"), :position => 5, :vposition => 5
             end
+            pdf.font_size = 36
+            pdf.font "Helvetica", :style => :bold
+            pdf.fill_color 'ffffff'
+            pdf.draw_text "#{story.points}", :at => [x - 10, y - 12]
+            pdf.fill_color '000000'
+            pdf.font_size = 14
+            pdf.font "#{Prawn::BASEDIR}/data/fonts/DejaVuSans.ttf", :style => :normal
           end
         end
       end

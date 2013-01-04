@@ -1,5 +1,7 @@
 # vim: set ft=ruby:
 
-source "http://rubygems.org"
+source :rubygems
 
 gemspec
+
+gem 'utils'
