@@ -17,7 +17,6 @@ module Pivotalprinter
     def self.open(ids)
       ids.map do |id|
         response = Client.get "/projects/#{Client.project}/stories/#{id}"
-        response = Nokogiri::XML.parse(response)
         self.new(response.css('story'))
       end
     end

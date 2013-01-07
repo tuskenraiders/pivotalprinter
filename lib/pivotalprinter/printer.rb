@@ -1,3 +1,8 @@
+require 'trollop'
+require 'yaml'
+require 'prawn'
+require 'prawn/layout/grid'
+
 module Pivotalprinter
   class Printer
     def run(argv)
@@ -12,7 +17,7 @@ module Pivotalprinter
         when "done"    then Pivotalprinter::Iteration.open('done').stories
         when "backlog" then Pivotalprinter::Iteration.open('backlog').stories
         when /^\d+$/   then Pivotalprinter::Story.open(argv.map(&:to_i))
-        else Pivotalprinter::Iteration.open('current').stories
+        else                Pivotalprinter::Iteration.open('current').stories
         end
       generate_output
     rescue ConfigNeeded
@@ -27,7 +32,16 @@ module Pivotalprinter
     end
 
     def print_config
-      puts %{---\ndefault: &default\n  token: "YOUR TOKEN HERE"\n  project: 123\n\nsome_project:\n  <<: *default # so you don't need to rewrite the token\n  project: 789}
+      puts <<CONFIG
+---
+default: &default
+  token:   "YOUR TOKEN HERE"
+  project: 123
+
+some_project:
+  <<:      *default # so you don't need to rewrite the token
+  project: 789
+CONFIG
     end
 
     def parse_options
