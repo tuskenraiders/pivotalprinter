@@ -1,16 +1,17 @@
 === 0.3.0 2013-01-07
 
 * Always show estimated points for all story types.
-* Some refactoring of the code
+* Some refactoring of the code.
 * Improved the images a bit (I think).
+* Display project name on each story card.
 
 === 0.2.0 2012-11-27
 
-* Adds more information on the ticket
+* Adds more information on the ticket.
 
 === 0.1.8 2011-10-25
 
-* Allow for ruby 1.9 compatibility
+* Allow for ruby 1.9 compatibility.
 
 === 0.1.7 2011-07-19
 
