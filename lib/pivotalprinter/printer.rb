@@ -4,7 +4,7 @@ module Pivotalprinter
       argv = argv.dup
       opts = parse_options
       yaml = load_yaml_config
-      project,token = extract_config(opts, yaml)
+      project, token = extract_config(opts, yaml)
       Pivotalprinter::Client.project = project
       Pivotalprinter::Client.token   = token
       @stories =
@@ -42,8 +42,9 @@ Usage:
 
 Options:
 EOS
-        opt :project,  "Project Name defined in $HOME/.pivotalprinterrc or project number", :short => "-p", :type => :string
-        opt :token,    "Pivotaltracker Token",    :short => "-t", :type => :string
+        opt :project,  "Project Name defined in $HOME/.pivotalprinterrc or project number",
+          :short => "-p", :type => :string
+        opt :token,    "Pivotaltracker Token",       :short => "-t", :type => :string
         opt :config,   "show example configuration", :short => "-c"
       end
 
