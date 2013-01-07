@@ -12,6 +12,7 @@ module Pivotalprinter
       project, token = extract_config(opts, yaml)
       Pivotalprinter::Client.project = project
       Pivotalprinter::Client.token   = token
+      @project_name = (Client.get("/projects/#{project}") / 'project/name').text
       @stories =
         case argv.last
         when "done"    then Pivotalprinter::Iteration.open('done').stories
@@ -108,27 +109,28 @@ EOS
             pdf.stroke_color = "666666"
             pdf.stroke_bounds
 
+            pdf.text_box "#@project_name ##{story.id}", :size => 10, :overflow => :truncate,
+              :width => cell.width - ( padding * 2),
+              :at => [pdf.bounds.left + padding, pdf.bounds.top - padding / 2 ]
+
             pdf.text_box story.name, :size => 14, :height => 50, :overflow => :truncate,
               :width => cell.width - (padding * 2) - 100,
-              :at => [pdf.bounds.left + padding + 50, pdf.bounds.top - padding]
+              :at => [pdf.bounds.left + padding + 50, pdf.bounds.top - 2 * padding]
 
-            pdf.text_box story.description, :size => 8, :overflow => :truncate,
-              :width => cell.width - ( padding * 2), :height => cell.height - (padding * 7),
-              :at => [pdf.bounds.left + padding, pdf.bounds.top - padding - 55]
+            pdf.text_box story.description.strip, :size => 8, :overflow => :truncate,
+              :width => cell.width - ( padding * 2), :height => cell.height - (padding * 8),
+              :at => [pdf.bounds.left + padding, pdf.bounds.top - 2 * padding - 55]
 
             pdf.text_box "Created at: #{story.created_at.strftime('%F')}", :size => 8,
               :at => [pdf.bounds.left + padding, pdf.bounds.bottom + padding]
 
-            pdf.text_box "ID: #{story.id}", :size => 8,
-              :at => [pdf.bounds.left + 110, pdf.bounds.bottom + padding]
-
             pdf.text_box "State: #{story.current_state}", :size => 8,
-              :at => [pdf.bounds.left + 170, pdf.bounds.bottom + padding]
+              :at => [pdf.bounds.left + 120, pdf.bounds.bottom + padding]
 
             pdf.text_box "Requester: #{story.requested_by}", :size => 8,
-              :at => [pdf.bounds.left + 240, pdf.bounds.bottom + padding]
+              :at => [pdf.bounds.left + 200, pdf.bounds.bottom + padding]
 
-            x, y = 32, 205
+            x, y = 32, 205 - padding
             pdf.fill_color story.points_background
             pdf.fill_circle [x, y], 25
             pdf.font_size = 36
@@ -138,7 +140,7 @@ EOS
             pdf.fill_color '000000'
             pdf.font_size = 14
             pdf.font "#{Prawn::BASEDIR}/data/fonts/DejaVuSans.ttf", :style => :normal
-            pdf.image open("#{File.dirname(__FILE__)}/images/#{story.story_type}.png"), :position => cell.width - 51, :vposition => 5
+            pdf.image open("#{File.dirname(__FILE__)}/images/#{story.story_type}.png"), :position => cell.width - 51, :vposition => 5 + padding
           end
         end
       end
