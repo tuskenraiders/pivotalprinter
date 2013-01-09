@@ -136,7 +136,7 @@ EOS
             pdf.font_size = 36
             pdf.font "Helvetica", :style => :bold
             pdf.fill_color 'ffffff'
-            pdf.draw_text "#{story.points}", :at => [x - 10, y - 12]
+            pdf.draw_text "#{story.points}", :at => [x - (story.points.to_s.to_i >= 10 ? 20 : 10), y - 12]
             pdf.fill_color '000000'
             pdf.font_size = 14
             pdf.font "#{Prawn::BASEDIR}/data/fonts/DejaVuSans.ttf", :style => :normal
