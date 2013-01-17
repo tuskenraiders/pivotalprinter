@@ -2,11 +2,11 @@ require 'trollop'
 require 'yaml'
 require 'prawn'
 require 'prawn/layout/grid'
-
+'optparse'
 module Pivotalprinter
   class Printer
     def run(argv)
-      argv = argv.dup
+      @argv = argv.dup
       opts = parse_options
       yaml = load_yaml_config
       project, token = extract_config(opts, yaml)
@@ -14,10 +14,10 @@ module Pivotalprinter
       Pivotalprinter::Client.token   = token
       @project_name = (Client.get("/projects/#{project}") / 'project/name').text
       @stories =
-        case argv.last
+        case @argv.last
         when "done"    then Pivotalprinter::Iteration.open('done').stories
         when "backlog" then Pivotalprinter::Iteration.open('backlog').stories
-        when /^\d+$/   then Pivotalprinter::Story.open(argv.map(&:to_i))
+        when /\A\d+\z/ then Pivotalprinter::Story.open(@argv.map(&:to_i))
         else                Pivotalprinter::Iteration.open('current').stories
         end
       generate_output
@@ -46,7 +46,7 @@ CONFIG
     end
 
     def parse_options
-      opts = Trollop::options do
+      opts = Trollop::options(@argv) do
         version "pivotalprinter #{Pivotalprinter::VERSION} (c) 2010#{(year = Time.now.year) > 2010 ? "-#{year}" : ''} pkw.de"
         banner <<-EOS
 Pivotalprinter is an awesome program to print stories from the PivotalTracker.
